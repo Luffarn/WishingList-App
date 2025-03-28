@@ -29,9 +29,13 @@ interface EditingItem extends Omit<WishlistItem, 'price'> {
 }
 
 const SUPPORTED_CURRENCIES = ['USD', 'EUR', 'SEK', 'GBP', 'JPY'];
+const LOCAL_STORAGE_KEY = 'wishlist_data';
 
 function App() {
-  const [people, setPeople] = useState<Person[]>([]);
+  const [people, setPeople] = useState<Person[]>(() => {
+    const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+    return savedData ? JSON.parse(savedData) : [];
+  });
   const [newPersonName, setNewPersonName] = useState('');
   const [showNewItemForm, setShowNewItemForm] = useState<string | null>(null);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -44,15 +48,37 @@ function App() {
     parentId: null as string | null,
     isRequired: false
   });
-  const [displayCurrency, setDisplayCurrency] = useState('SEK');
+  const [displayCurrency, setDisplayCurrency] = useState(() => {
+    const savedCurrency = localStorage.getItem('display_currency');
+    return savedCurrency || 'SEK';
+  });
   const [rates, setRates] = useState<ExchangeRates>({});
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [darkMode, setDarkMode] = useState(() => {
+    const savedMode = localStorage.getItem('dark_mode');
+    if (savedMode !== null) {
+      return savedMode === 'true';
+    }
     if (typeof window !== 'undefined') {
       return window.matchMedia('(prefers-color-scheme: dark)').matches;
     }
     return false;
   });
+
+  // Save people data whenever it changes
+  useEffect(() => {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(people));
+  }, [people]);
+
+  // Save display currency whenever it changes
+  useEffect(() => {
+    localStorage.setItem('display_currency', displayCurrency);
+  }, [displayCurrency]);
+
+  // Save dark mode preference whenever it changes
+  useEffect(() => {
+    localStorage.setItem('dark_mode', darkMode.toString());
+  }, [darkMode]);
 
   useEffect(() => {
     fetch('https://api.exchangerate-api.com/v4/latest/USD')
